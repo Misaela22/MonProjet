@@ -5,11 +5,8 @@ import subprocess
 import uuid
 from pathlib import Path
 
-import yt_dlp
-from gtts import gTTS
-
 from app.services.summarizer import SummaryService
-from app.services.youtube_service import YouTubeService
+from app.services.youtube_service import YouTubeService, YouTubeServiceError
 
 
 class ShortGenerationError(Exception):
@@ -24,6 +21,24 @@ class ShortGenerator:
 
     def _slug(self, value: str) -> str:
         return re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")[:80] or "video"
+
+    def _yt_dlp(self):
+        try:
+            import yt_dlp  # type: ignore
+        except Exception as exc:
+            raise ShortGenerationError(
+                "Le module yt-dlp est manquant. Installe les dépendances: pip install -r requirements.txt"
+            ) from exc
+        return yt_dlp
+
+    def _gtts(self):
+        try:
+            from gtts import gTTS  # type: ignore
+        except Exception as exc:
+            raise ShortGenerationError(
+                "Le module gTTS est manquant. Installe les dépendances: pip install -r requirements.txt"
+            ) from exc
+        return gTTS
 
     def create_short_package(
         self,
@@ -52,9 +67,12 @@ class ShortGenerator:
         try:
             self._render_vertical_short(source_file, short_file, start, target_len)
             if include_narration:
+                gTTS = self._gtts()
                 gTTS(summary, lang="fr").save(str(narration_file))
                 self._replace_audio(short_file, narration_file)
             summary_file.write_text(summary, encoding="utf-8")
+        except (YouTubeServiceError, ShortGenerationError):
+            raise
         except Exception as exc:
             raise ShortGenerationError(f"Erreur lors de la création du Short: {exc}") from exc
         finally:
@@ -70,6 +88,7 @@ class ShortGenerator:
         }
 
     def _download_video(self, video_url: str, output_file: Path) -> None:
+        yt_dlp = self._yt_dlp()
         options = {
             "format": "best[ext=mp4]/best",
             "outtmpl": str(output_file),
@@ -102,7 +121,10 @@ class ShortGenerator:
             "aac",
             str(target),
         ]
-        subprocess.run(cmd, check=True, capture_output=True)
+        try:
+            subprocess.run(cmd, check=True, capture_output=True)
+        except FileNotFoundError as exc:
+            raise ShortGenerationError("ffmpeg est introuvable sur le système.") from exc
 
     def _replace_audio(self, target_video: Path, narration_audio: Path) -> None:
         out = target_video.with_name(target_video.stem + "-narrated.mp4")
@@ -122,5 +144,8 @@ class ShortGenerator:
             "-shortest",
             str(out),
         ]
-        subprocess.run(cmd, check=True, capture_output=True)
+        try:
+            subprocess.run(cmd, check=True, capture_output=True)
+        except FileNotFoundError as exc:
+            raise ShortGenerationError("ffmpeg est introuvable sur le système.") from exc
         out.replace(target_video)

@@ -12,7 +12,12 @@
       <p>Détecte des vidéos longues/tendances, puis fabrique un YouTube Short avec narration ou résumé téléchargeable.</p>
 
       <section class="panel">
-        <h2>1) Détection</h2>
+        <h2>État système</h2>
+        <p id="health">Vérification...</p>
+      </section>
+
+      <section class="panel">
+        <h2>1) Détection YouTube</h2>
         <form id="analyze-form">
           <input id="topic" placeholder="Ex: intelligence artificielle" required />
           <input id="minDuration" type="number" min="1" value="12" required />
@@ -27,13 +32,26 @@
       </section>
 
       <section class="panel">
-        <h2>3) Génération du short</h2>
+        <h2>3) Génération du short réel</h2>
         <form id="short-form">
           <input id="videoUrl" placeholder="URL YouTube" required />
           <textarea id="customSummary" placeholder="Résumé personnalisé (optionnel)"></textarea>
           <label><input type="checkbox" id="narration" checked /> Inclure narration automatique</label>
           <button type="submit">Créer le short</button>
         </form>
+      </section>
+
+      <section class="panel">
+        <h2>4) Mode démo (si YouTube indisponible)</h2>
+        <form id="demo-form">
+          <input id="demoTitle" placeholder="Titre de la vidéo" value="Vidéo exemple" required />
+          <textarea id="demoDescription" placeholder="Colle une longue description/texte ici" required></textarea>
+          <button type="submit">Générer un résumé démo</button>
+        </form>
+      </section>
+
+      <section class="panel">
+        <h2>Sortie</h2>
         <div id="output"></div>
       </section>
     </main>

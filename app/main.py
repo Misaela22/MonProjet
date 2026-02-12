@@ -6,6 +6,7 @@ from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
+from app.services.dependencies import get_dependency_status
 from app.services.short_generator import ShortGenerator, ShortGenerationError
 from app.services.summarizer import SummaryService
 from app.services.youtube_service import YouTubeService, YouTubeServiceError
@@ -35,10 +36,29 @@ class CreateShortRequest(BaseModel):
     custom_summary: Optional[str] = None
 
 
+class DemoShortRequest(BaseModel):
+    title: str = Field(default="Vidéo exemple")
+    long_description: str = Field(..., min_length=40, max_length=5000)
+
+
 @app.get("/", response_class=HTMLResponse)
 def home() -> HTMLResponse:
     index = STATIC_DIR / "index.html"
     return HTMLResponse(index.read_text(encoding="utf-8"))
+
+
+@app.get("/api/health")
+def health():
+    deps = get_dependency_status()
+    return {
+        "status": "ok",
+        "dependencies": {
+            "fastapi": deps.fastapi,
+            "yt_dlp": deps.yt_dlp,
+            "gtts": deps.gtts,
+            "ready_for_full_pipeline": deps.ready_for_full_pipeline,
+        },
+    }
 
 
 @app.post("/api/analyze")
@@ -69,9 +89,25 @@ def create_short(req: CreateShortRequest):
     return package
 
 
+@app.post("/api/demo-short")
+def create_demo_short(req: DemoShortRequest):
+    summary = summary_service.summarize(req.long_description)
+    demo_name = "demo-resume.txt"
+    demo_file = OUTPUT_DIR / demo_name
+    demo_file.write_text(f"Titre: {req.title}\n\n{summary}", encoding="utf-8")
+    return {
+        "title": req.title,
+        "summary": summary,
+        "summary_download": f"/downloads/{demo_name}",
+        "message": "Mode démo: résumé généré sans YouTube/ffmpeg.",
+    }
+
+
 @app.get("/downloads/{filename}")
 def download(filename: str):
-    file_path = OUTPUT_DIR / filename
-    if not file_path.exists():
+    file_path = (OUTPUT_DIR / filename).resolve()
+    if OUTPUT_DIR.resolve() not in file_path.parents:
+        raise HTTPException(status_code=400, detail="Nom de fichier invalide")
+    if not file_path.exists() or not file_path.is_file():
         raise HTTPException(status_code=404, detail="File not found")
     return FileResponse(path=file_path)

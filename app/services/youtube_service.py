@@ -4,8 +4,6 @@ import math
 from datetime import datetime, timezone
 from typing import Any
 
-import yt_dlp
-
 
 class YouTubeServiceError(Exception):
     pass
@@ -20,6 +18,15 @@ class YouTubeService:
             "skip_download": True,
         }
 
+    def _yt_dlp(self):
+        try:
+            import yt_dlp  # type: ignore
+        except Exception as exc:
+            raise YouTubeServiceError(
+                "Le module yt-dlp est manquant. Installe les dépendances: pip install -r requirements.txt"
+            ) from exc
+        return yt_dlp
+
     def _score(self, views: int, age_days: float, duration: int) -> float:
         freshness = 1 / max(age_days, 1)
         duration_bonus = min(duration / 3600, 3)
@@ -31,6 +38,7 @@ class YouTubeService:
         min_duration_minutes: int = 10,
         max_results: int = 8,
     ) -> list[dict[str, Any]]:
+        yt_dlp = self._yt_dlp()
         search_url = f"ytsearch{max_results * 4}:{topic}"
         with yt_dlp.YoutubeDL(self._base_opts) as ydl:
             try:
@@ -72,6 +80,7 @@ class YouTubeService:
         return candidates[:max_results]
 
     def get_video_metadata(self, video_url: str) -> dict[str, Any]:
+        yt_dlp = self._yt_dlp()
         with yt_dlp.YoutubeDL(self._base_opts) as ydl:
             try:
                 info = ydl.extract_info(video_url, download=False)
