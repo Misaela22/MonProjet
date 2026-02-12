@@ -1,0 +1,51 @@
+:root {
+  color-scheme: dark;
+  font-family: Inter, system-ui, sans-serif;
+}
+body {
+  margin: 0;
+  background: #0f172a;
+  color: #e2e8f0;
+}
+.container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+.panel {
+  background: #1e293b;
+  border-radius: 14px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+form {
+  display: grid;
+  gap: 0.6rem;
+}
+input, textarea, button {
+  border-radius: 8px;
+  border: 1px solid #475569;
+  padding: 0.75rem;
+  background: #0f172a;
+  color: #f8fafc;
+}
+button {
+  cursor: pointer;
+  background: #2563eb;
+  border: none;
+}
+.cards {
+  display: grid;
+  gap: 0.75rem;
+}
+.card {
+  border: 1px solid #334155;
+  border-radius: 10px;
+  padding: 0.75rem;
+}
+small {
+  color: #93c5fd;
+}
+#output a {
+  color: #60a5fa;
+}
